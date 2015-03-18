@@ -1,0 +1,126 @@
+name = RedHen Raiser
+description = Team Based Fundraising
+core = 7.x
+distribution_name = RedHen Raiser
+exclusive = TRUE
+version = 1.0
+
+; Core
+dependencies[] = block
+dependencies[] = dblog
+dependencies[] = field_ui
+dependencies[] = file
+dependencies[] = menu
+dependencies[] = number
+dependencies[] = options
+dependencies[] = path
+dependencies[] = taxonomy
+
+; Contrib
+dependencies[] = addressfield
+dependencies[] = bean
+dependencies[] = bean_admin_ui
+dependencies[] = bean_entity_view
+dependencies[] = better_formats
+dependencies[] = breakpoints
+dependencies[] = ckeditor
+dependencies[] = colectomy
+dependencies[] = commerce
+dependencies[] = commerce_cart
+dependencies[] = commerce_checkout
+dependencies[] = commerce_ui
+dependencies[] = commerce_customer
+dependencies[] = commerce_customer_ui
+dependencies[] = commerce_line_item
+dependencies[] = commerce_line_item_ui
+dependencies[] = commerce_order
+dependencies[] = commerce_order_ui
+dependencies[] = commerce_payment
+dependencies[] = commerce_payment_example
+dependencies[] = commerce_payment_ui
+dependencies[] = commerce_price
+dependencies[] = commerce_product
+dependencies[] = commerce_product_pricing
+dependencies[] = commerce_product_reference
+dependencies[] = commerce_cardonfile
+dependencies[] = commerce_recurring
+dependencies[] = commerce_features
+dependencies[] = context
+dependencies[] = context_condition_admin_theme
+dependencies[] = context_query_param
+dependencies[] = context_ui
+dependencies[] = ctools
+dependencies[] = date
+dependencies[] = date_api
+dependencies[] = date_popup
+dependencies[] = date_restrictions
+dependencies[] = date_restrictions_minmax
+dependencies[] = date_views
+dependencies[] = diff
+dependencies[] = elements
+dependencies[] = email_registration
+dependencies[] = entity
+dependencies[] = entityreference
+dependencies[] = features
+dependencies[] = field_group
+dependencies[] = honeypot
+dependencies[] = html5_tools
+dependencies[] = interval
+dependencies[] = libraries
+dependencies[] = link
+dependencies[] = list
+dependencies[] = metatag
+dependencies[] = metatag_opengraph
+dependencies[] = media
+dependencies[] = media_internet
+dependencies[] = media_vimeo
+dependencies[] = media_youtube
+dependencies[] = module_filter
+dependencies[] = navbar
+dependencies[] = navbar_flush_cache
+dependencies[] = options_element
+dependencies[] = picture
+dependencies[] = image
+dependencies[] = file_entity
+dependencies[] = login_destination
+dependencies[] = pathauto_entity
+dependencies[] = redhen
+dependencies[] = redhen_contact
+dependencies[] = redhen_donation
+dependencies[] = redhen_fields
+dependencies[] = redhen_campaign
+dependencies[] = rules
+dependencies[] = select_or_other
+dependencies[] = short_scale_formatter
+dependencies[] = strongarm
+dependencies[] = token
+dependencies[] = views
+dependencies[] = views_conditional
+dependencies[] = views_ui
+dependencies[] = views_data_export
+dependencies[] = views_infinite_scroll
+
+; RedHen Raiser
+dependencies[] = redhen_raiser_core
+dependencies[] = redhen_raiser_contacts
+dependencies[] = redhen_raiser_blocks
+dependencies[] = redhen_raiser_context
+dependencies[] = redhen_raiser_page
+dependencies[] = redhen_raiser_donations
+dependencies[] = redhen_raiser_campaigns
+dependencies[] = redhen_raiser_campaign_pages
+dependencies[] = redhen_raiser_campaign_updates
+dependencies[] = redhen_raiser_styles
+dependencies[] = redhen_raiser_views
+; redhen_raiser_defaults is enabled in the install script.
+
+; RedHen Raiser permissions
+dependencies[] = redhen_raiser_core_access
+dependencies[] = redhen_raiser_crm_access
+dependencies[] = redhen_raiser_blocks_access
+dependencies[] = redhen_raiser_campaign_access
+dependencies[] = redhen_raiser_content_access
+dependencies[] = redhen_raiser_commerce_access
+
+
+files[] = redhen_raiser.profile
