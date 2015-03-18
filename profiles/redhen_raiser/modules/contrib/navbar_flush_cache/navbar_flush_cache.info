@@ -1,0 +1,11 @@
+name = Navbar Flush Cache
+description = Provide flusdh cache link in navbar
+core = 7.x
+package = Other
+
+dependencies[] = navbar
+
+; Information added by drush on 2013-07-23
+version = "7.x-1.x-dev"
+project = "navbar_flush_cache"
+datestamp = "1374560489"

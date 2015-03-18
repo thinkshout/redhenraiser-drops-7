@@ -1,0 +1,15 @@
+name = Commerce Recurring UI
+description = Provides an UI for Commerce Recurring Framework
+package = Commerce (contrib)
+core = 7.x
+dependencies[] = commerce_recurring
+dependencies[] = views
+
+configure = admin/commerce/recurring-entities
+
+files[] = includes/views/handlers/commerce_recurring_handler_field_order_operations.inc
+
+; Information added by drush on 2014-08-18
+version = "7.x-2.x-dev"
+project = "commerce_recurring"
+datestamp = "1408401036"

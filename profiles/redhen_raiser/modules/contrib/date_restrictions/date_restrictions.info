@@ -1,0 +1,14 @@
+name = Date Restrictions
+description = Allows to set restrictions on accepted values in date fields.
+package = Date/Time
+core = 7.x
+php = 5.3
+
+; Tests
+files[] = tests/date_restrictions_base.test
+
+
+; Information added by drush on 2014-06-20
+version = "7.x-1.x-dev"
+project = "date_restrictions"
+datestamp = "1403306983"
