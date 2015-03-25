@@ -171,21 +171,6 @@ function redhen_campaign_campaign_page_form($form, &$form_state, $page) {
   $form_state['page_entity'] = $page;
   field_attach_form('redhen_campaign_page', $page, $form, $form_state);
 
-  if (isset($page->is_new) && $page->is_new && $type_entity->page_type == REDHEN_CAMPAIGN_PAGE_TEAM) {
-    $form['campaign_page_invite_wrapper'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Invite team members'),
-      '#description' => t('<span class="fieldset-description-title">@tip_title</span>Optionally invite your friends to join the team.', array('@tip_title' => 'Invite Tip')),
-      '#id' => 'redhen-campaign-page-campaign-invite',
-      '#weight' => 30,
-    );
-    $invite_form = redhen_campaign_invite_form($form['campaign_page_invite_wrapper'], $form_state, $page);
-    unset($invite_form['actions']);
-    $invite_form['emails']['#required'] = FALSE;
-    $invite_form['message']['#required'] = FALSE;
-    $form['campaign_page_invite_wrapper'] = $invite_form;
-  }
-
   $form['actions'] = array(
     '#type' => 'container',
     '#attributes' => array('class' => array('form-actions')),
@@ -231,14 +216,19 @@ function redhen_campaign_campaign_page_form_submit($form, &$form_state) {
   // Notify field widgets.
   field_attach_submit('redhen_campaign_page', $page, $form, $form_state);
 
-  // Save the campaign.
-  $page->save();
-
-  drupal_set_message(t('Campaign Page %label saved.', array('%label' => $page->label)));
-
-  // Invite team members if emails are provided.
-  if ($page->campaign_page_type == REDHEN_CAMPAIGN_PAGE_TEAM && !empty($form_state['values']['emails'])) {
-    redhen_campaign_send_invite($page, $form_state['values']['emails'], $form_state['values']['message']);
+  // If this is a new team page, point the creator to the invitation tab.
+  if (isset($page->is_new) && $page->is_new && $page->campaign_page_type == REDHEN_CAMPAIGN_PAGE_TEAM) {
+    // Save the campaign after the is_new check.
+    $page->save();
+    drupal_set_message(t('Your team fundraiser %label has been created. Now visit the <a href=@link>Invite tab</a> to recruit team members!',
+      array(
+        '%label' => $page->label,
+        '@link' => "/redhen_campaign/page/" . $page->internalIdentifier() . "/invite",
+        )));
+  }
+  else {
+    $page->save();
+    drupal_set_message(t('Fundraiser %label saved.', array('%label' => $page->label)));
   }
 
   $form_state['redirect'] = 'redhen_campaign/page/' . $page->internalIdentifier();
@@ -395,12 +385,12 @@ function redhen_campaign_page_add_form_callback($form, $form_state) {
 function redhen_campaign_invite_form($form, &$form_state, RedhenCampaignPage $campaign_page) {
   $form_state['redhen_campaign_page'] = $campaign_page;
   $wrapper = entity_metadata_wrapper('redhen_campaign_page', $campaign_page);
-
   $form['emails'] = array(
     '#type' => 'textarea',
     '#required' => TRUE,
     '#title' => t('Emails'),
     '#description' => t('Enter a comma delimited list of emails to invite to your team.'),
+    '#weight' => 10,
     '#element_validate' => array('redhen_campaign_invite_emails_field_validate'),
   );
 
@@ -411,11 +401,13 @@ function redhen_campaign_invite_form($form, &$form_state, RedhenCampaignPage $ca
     '#required' => TRUE,
     '#title' => t('Message'),
     '#description' => t('Customize your invitation. The invite link will be appended to the end of the message.'),
+    '#weight' =>11,
     '#default_value' => $default_message,
   );
 
   $form['actions'] = array(
     '#type' => 'actions',
+    '#weight' => 15,
     'submit' => array(
       '#type' => 'submit',
       '#value' => t('Invite'),
@@ -425,6 +417,9 @@ function redhen_campaign_invite_form($form, &$form_state, RedhenCampaignPage $ca
   return $form;
 }
 
+/**
+ * Validation function for email invitation form.
+ */
 function redhen_campaign_invite_emails_field_validate($element, &$form_state, $form) {
   $clean_emails = preg_replace('/\s+/', '', $element['#value']);
   if (empty($clean_emails)) {

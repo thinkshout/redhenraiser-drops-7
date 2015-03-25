@@ -27,6 +27,7 @@ function redhen_campaign_entity_info() {
       'entity class' => 'RedhenCampaign',
       'base table' => 'redhen_campaign',
       'fieldable' => TRUE,
+      'metatags' => TRUE,
       'entity keys' => array(
         'id' => 'campaign_id',
         'bundle' => 'type',
@@ -85,6 +86,7 @@ function redhen_campaign_entity_info() {
       'entity class' => 'RedhenCampaignPage',
       'base table' => 'redhen_campaign_page',
       'fieldable' => TRUE,
+      'metatags' => TRUE,
       'entity keys' => array(
         'id' => 'page_id',
         'bundle' => 'type',
@@ -417,7 +419,16 @@ function redhen_campaign_menu() {
     'title callback' => 'redhen_campaign_campaign_page_title',
     'title arguments' => array(2),
     'page callback' => 'redhen_campaign_page_view',
-    'page arguments' => array(2),
+    'page arguments' => array(2, FALSE),
+    'access callback' => 'redhen_campaign_page_access',
+    'access arguments' => array('view', 2),
+    'weight' => -20,
+  );
+  $items['redhen_campaign/page/%redhen_campaign_page/join'] = array(
+    'title callback' => 'redhen_campaign_campaign_page_title',
+    'title arguments' => array(2),
+    'page callback' => 'redhen_campaign_page_view',
+    'page arguments' => array(2, TRUE),
     'access callback' => 'redhen_campaign_page_access',
     'access arguments' => array('view', 2),
     'weight' => -20,
@@ -838,7 +849,10 @@ function redhen_campaign_view(RedhenCampaign $campaign, $view_mode = 'full', $la
 /**
  * Display a campaign page.
  */
-function redhen_campaign_page_view(RedhenCampaignPage $campaign_page, $view_mode = 'full', $langcode = NULL, $page = NULL) {
+function redhen_campaign_page_view(RedhenCampaignPage $campaign_page, $invite, $view_mode = 'full', $langcode = NULL, $page = NULL) {
+  if ($invite) {
+    $_SESSION['redhen_campaign_team_invitations'][$campaign_page->identifier()] = TRUE;
+  }
   return entity_view('redhen_campaign_page', array($campaign_page), $view_mode, $langcode, $page);
 }
 

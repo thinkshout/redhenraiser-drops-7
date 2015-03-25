@@ -17,9 +17,9 @@ files[] = lib/redhen_campaign_page.entity.inc
 files[] = lib/redhen_campaign_page.metadata.inc
 files[] = lib/redhen_campaign_page_type.entity.inc
 
-; Information added by Drupal.org packaging script on 2015-01-26
-version = "7.x-1.1"
+; Information added by Drupal.org packaging script on 2015-03-20
+version = "7.x-1.2"
 core = "7.x"
 project = "redhen_campaign"
-datestamp = "1422302592"
+datestamp = "1426892282"
 

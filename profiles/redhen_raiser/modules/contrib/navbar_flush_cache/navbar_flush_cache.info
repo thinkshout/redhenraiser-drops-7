@@ -5,7 +5,7 @@ package = Other
 
 dependencies[] = navbar
 
-; Information added by drush on 2013-07-23
+; Information added by drush on 2013-07-22
 version = "7.x-1.x-dev"
 project = "navbar_flush_cache"
 datestamp = "1374560489"
