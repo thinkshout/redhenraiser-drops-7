@@ -145,15 +145,15 @@ projects[media][subdir] = "contrib"
 projects[media][patch][] = "https://www.drupal.org/files/issues/change_select_button_when_value_exists.patch"
 
 ; media_vimeo
-projects[media_vimeo][version] = "2.0"
+projects[media_vimeo][version] = "2.1"
 projects[media_vimeo][subdir] = "contrib"
 
 ; media_youtube
-projects[media_youtube][version] = "2.0-rc5"
+projects[media_youtube][version] = "3.0"
 projects[media_youtube][subdir] = "contrib"
 
 ; metatag
-projects[metatag][version] = "1.4"
+projects[metatag][version] = "1.5"
 projects[metatag][subdir] = "contrib"
 
 ; module_filter
@@ -186,7 +186,7 @@ projects[pathauto_entity][version] = "1.0"
 projects[pathauto_entity][subdir] = "contrib"
 
 ; picture
-projects[picture][version] = "2.9"
+projects[picture][version] = "2.10"
 projects[picture][subdir] = "contrib"
 
 ; redhen
@@ -207,7 +207,7 @@ projects[rules][version] = "2.9"
 projects[rules][subdir] = "contrib"
 
 ; select_or_other
-projects[select_or_other][version] = "2.21"
+projects[select_or_other][version] = "2.22"
 projects[select_or_other][subdir] = "contrib"
 
 ; short_scale_formatter
