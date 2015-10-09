@@ -11,7 +11,7 @@ core = 7.x
 
 
 ; addressfield
-projects[addressfield][version] = "1.1"
+projects[addressfield][version] = "1.2"
 projects[addressfield][subdir] = "contrib"
 
 ; bean
@@ -45,7 +45,7 @@ projects[colectomy][version] = "1.0-beta2"
 projects[colectomy][subdir] = "contrib"
 
 ; commerce_features
-projects[commerce_features][version] = "1.0"
+projects[commerce_features][version] = "1.1"
 projects[commerce_features][subdir] = "contrib"
 
 ; commerce_cardonfile
@@ -75,13 +75,12 @@ projects[context_query_param][version] = "1.3"
 projects[context_query_param][subdir] = "contrib"
 
 ; ctools
-projects[ctools][version] = "1.7"
+projects[ctools][version] = "1.9"
 projects[ctools][subdir] = "contrib"
 
 ; date
-projects[date][version] = "2.8"
+projects[date][version] = "2.9"
 projects[date][subdir] = "contrib"
-projects[date][patch][] = "https://www.drupal.org/files/issues/date_add_rounding_option_to_interval_formatter.patch"
 
 ; date_restrictions
 projects[date_restrictions][download][type] = "git"
@@ -95,7 +94,7 @@ projects[elements][version] = "1.4"
 projects[elements][subdir] = "contrib"
 
 ; email_registration
-projects[email_registration][version] = "1.2"
+projects[email_registration][version] = "1.3"
 projects[email_registration][subdir] = "contrib"
 
 ; entity
@@ -107,7 +106,7 @@ projects[entityreference][version] = "1.1"
 projects[entityreference][subdir] = "contrib"
 
 ; features
-projects[features][version] = "2.5"
+projects[features][version] = "2.6"
 projects[features][subdir] = "contrib"
 
 ; field_group
@@ -115,7 +114,7 @@ projects[field_group][version] = "1.4"
 projects[field_group][subdir] = "contrib"
 
 ; honeypot
-projects[honeypot][version] = "1.17"
+projects[honeypot][version] = "1.21"
 projects[honeypot][subdir] = "contrib"
 
 ; html5_tools
@@ -153,7 +152,7 @@ projects[media_youtube][version] = "3.0"
 projects[media_youtube][subdir] = "contrib"
 
 ; metatag
-projects[metatag][version] = "1.5"
+projects[metatag][version] = "1.7"
 projects[metatag][subdir] = "contrib"
 
 ; module_filter
@@ -178,7 +177,7 @@ projects[options_element][version] = "1.12"
 projects[options_element][subdir] = "contrib"
 
 ; pathauto requires token
-projects[pathauto][version] = "1.2"
+projects[pathauto][version] = "1.3"
 projects[pathauto][subdir] = "contrib"
 
 ; pathauto_entity
@@ -186,7 +185,7 @@ projects[pathauto_entity][version] = "1.0"
 projects[pathauto_entity][subdir] = "contrib"
 
 ; picture
-projects[picture][version] = "2.10"
+projects[picture][version] = "2.12"
 projects[picture][subdir] = "contrib"
 
 ; redhen
@@ -285,5 +284,7 @@ libraries[modernizr][download][url] = "https://github.com/Modernizr/Modernizr/ar
 ;-----------------------------------------
 projects[zen][subdir] = 'contrib'
 projects[zen][version] = 5.5
+projects[zen][type] = 'theme'
 projects[shiny][subdir] = 'contrib'
-projects[shiny][version] = 1.6
+projects[shiny][version] = 1.7
+projects[shiny][type] = 'theme'

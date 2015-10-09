@@ -196,7 +196,6 @@ function theme_date_time_ago($variables) {
   $end_date = $variables['end_date'];
   $interval = !empty($variables['interval']) ? $variables['interval'] : 2;
   $display = isset($variables['interval_display']) ? $variables['interval_display'] : 'time ago';
-  $round = isset($variables['round']) ? $variables['round'] : FALSE;
 
   // If no date is sent, then return nothing.
   if (empty($start_date) || empty($end_date)) {
@@ -207,24 +206,31 @@ function theme_date_time_ago($variables) {
   $now = date_format(date_now(), DATE_FORMAT_UNIX);
   $start = date_format($start_date, DATE_FORMAT_UNIX);
 
-  // will be positive for a datetime in the past (ago), and negative for a datetime in the future (hence)
+  // Will be positive for a datetime in the past (ago), and negative for a datetime in the future (hence).
   $time_diff = $now - $start;
 
   // Uses the same options used by Views format_interval.
   switch ($display) {
     case 'raw time ago':
-      return format_interval($time_diff, $interval, NULL, $round);
+      return format_interval($time_diff, $interval);
+
     case 'time ago':
-      return t('%time ago', array('%time' => format_interval($time_diff, $interval, NULL, $round)));
+      return t('%time ago', array('%time' => format_interval($time_diff, $interval)));
+
     case 'raw time hence':
-      return format_interval(-$time_diff, $interval, NULL, $round);
+      return format_interval(-$time_diff, $interval);
+
     case 'time hence':
-      return t('%time hence', array('%time' => format_interval(-$time_diff, $interval, NULL, $round)));
+      return t('%time hence', array('%time' => format_interval(-$time_diff, $interval)));
+
     case 'raw time span':
-      return ($time_diff < 0 ? '-' : '') . format_interval(abs($time_diff), $interval, NULL, $round);
+      return ($time_diff < 0 ? '-' : '') . format_interval(abs($time_diff), $interval);
+
     case 'inverse time span':
-      return ($time_diff > 0 ? '-' : '') . format_interval(abs($time_diff), $interval, NULL, $round);
+      return ($time_diff > 0 ? '-' : '') . format_interval(abs($time_diff), $interval);
+
     case 'time span':
-      return t(($time_diff < 0 ? '%time hence' : '%time ago'), array('%time' => format_interval(abs($time_diff), $interval, NULL, $round)));
+      return t(($time_diff < 0 ? '%time hence' : '%time ago'), array('%time' => format_interval(abs($time_diff), $interval)));
+
   }
 }
