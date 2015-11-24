@@ -106,7 +106,7 @@ projects[entityreference][version] = "1.1"
 projects[entityreference][subdir] = "contrib"
 
 ; features
-projects[features][version] = "2.6"
+projects[features][version] = "2.7"
 projects[features][subdir] = "contrib"
 
 ; field_group
@@ -118,7 +118,7 @@ projects[honeypot][version] = "1.21"
 projects[honeypot][subdir] = "contrib"
 
 ; html5_tools
-projects[html5_tools][version] = "1.2"
+projects[html5_tools][version] = "1.3"
 projects[html5_tools][subdir] = "contrib"
 
 ; interval
@@ -185,11 +185,11 @@ projects[pathauto_entity][version] = "1.0"
 projects[pathauto_entity][subdir] = "contrib"
 
 ; picture
-projects[picture][version] = "2.12"
+projects[picture][version] = "2.13"
 projects[picture][subdir] = "contrib"
 
 ; redhen
-projects[redhen][version] = "1.9"
+projects[redhen][version] = "1.10"
 projects[redhen][subdir] = "contrib"
 
 ; redhen_donation
@@ -222,11 +222,11 @@ projects[token][version] = "1.6"
 projects[token][subdir] = "contrib"
 
 ; views
-projects[views][version] = "3.11"
+projects[views][version] = "3.13"
 projects[views][subdir] = "contrib"
 
 ; views_data_export
-projects[views_data_export][version] = "3.0-beta8"
+projects[views_data_export][version] = "3.0-beta9"
 projects[views_data_export][subdir] = "contrib"
 
 ; views_infinite_scroll
