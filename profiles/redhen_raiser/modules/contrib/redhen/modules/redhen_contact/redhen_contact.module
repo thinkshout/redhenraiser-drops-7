@@ -904,7 +904,7 @@ function redhen_contact_query_redhen_contact_label_alter(QueryAlterableInterface
   foreach ($where as $id => $condition) {
     // If we're trying to search for redhen_contact.label, alter the query to
     // search in both first and last name fields.
-    if (is_string($condition['field']) &&
+    if (isset($condition['field']) && is_string($condition['field']) &&
       $condition['field'] == 'redhen_contact.label') {
       unset($where[$id]);
       $or = db_or()
@@ -1181,9 +1181,12 @@ function redhen_contact_user_form_submit($form, &$form_state) {
  */
 function redhen_contact_user_view($account, $view_mode, $langcode) {
   // Include contact view if access allowed.
-  if (user_access('view own redhen contact') && $contact = redhen_contact_load_by_user($account)) {
-    $view_mode = variable_get('redhen_contact_view_mode', $view_mode);
-    $account->content['redhen_contact'] = redhen_contact_view($contact, $view_mode);
+  if ($contact = redhen_contact_load_by_user($account)) {
+    // A Contact exists for this account. Does the current user have access?
+    if (redhen_contact_access('view', $contact)) {
+      $view_mode = variable_get('redhen_contact_view_mode', $view_mode);
+      $account->content['redhen_contact'] = redhen_contact_view($contact, $view_mode);
+    }
   }
 }
 
@@ -1304,7 +1307,7 @@ function redhen_contact_rules_file_info() {
  * Use the RedHen Contact as the comment author.
  */
 function redhen_contact_preprocess_comment(&$variables) {
-  if (variable_get(REDHEN_CONTACT_ALTER_COMMENT_AUTHOR, FALSE) && $contact = redhen_contact_load_by_user($variables['user'])) {
+  if (variable_get(REDHEN_CONTACT_ALTER_COMMENT_AUTHOR, FALSE) && $contact = redhen_contact_load_by_user(user_load($variables['comment']->uid))) {
     if (entity_access('view', 'redhen_contact', $contact)) {
       $contact_uri = $contact->uri();
       $variables['author'] = l($contact->label(), $contact_uri['path'], array('attributes' => array('title' => 'View profile', 'class' => 'username')));
