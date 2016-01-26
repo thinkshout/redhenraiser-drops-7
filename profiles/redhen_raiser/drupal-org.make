@@ -152,7 +152,7 @@ projects[media_youtube][version] = "3.0"
 projects[media_youtube][subdir] = "contrib"
 
 ; metatag
-projects[metatag][version] = "1.8"
+projects[metatag][version] = "1.10"
 projects[metatag][subdir] = "contrib"
 
 ; module_filter
@@ -160,7 +160,7 @@ projects[module_filter][version] = "2.0"
 projects[module_filter][subdir] = "contrib"
 
 ; navbar
-projects[navbar][version] = "1.5"
+projects[navbar][version] = "1.7"
 projects[navbar][subdir] = "contrib"
 ; Patch to add top-level icons for commerce menu, etc.
 projects[navbar][patch][] = "https://www.drupal.org/files/issues/navbar-contrib-icons-1954912-20.patch"
@@ -283,7 +283,7 @@ libraries[modernizr][download][url] = "https://github.com/Modernizr/Modernizr/ar
 ; Themes
 ;-----------------------------------------
 projects[zen][subdir] = 'contrib'
-projects[zen][version] = 5.5
+projects[zen][version] = 5.6
 projects[zen][type] = 'theme'
 projects[shiny][subdir] = 'contrib'
 projects[shiny][version] = 1.7
