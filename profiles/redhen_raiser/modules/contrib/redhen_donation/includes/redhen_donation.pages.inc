@@ -30,12 +30,7 @@ function redhen_donation_donation_title($entity_type, $entity) {
 function redhen_donation_donate_page($entity_type, $entity) {
   list($entity_id) = entity_extract_ids($entity_type, $entity);
   if (redhen_donation_status($entity_type, $entity_id)) {
-    $donation_type = redhen_donation_get_entity_donation_type($entity_type, $entity);
-    $donation = entity_get_controller('redhen_donation')->create(array(
-      'entity_type' => $entity_type,
-      'entity_id' => $entity_id,
-      'type' => $donation_type,
-    ));
+    $donation = redhen_donation_initialize_donation($entity, $entity_type, $entity_id);
     return drupal_get_form('redhen_donation_form', $donation);
   }
   else {
@@ -55,10 +50,10 @@ function redhen_donation_donate_page($entity_type, $entity) {
  * @return array
  *   Donation entity settings form.
  */
-function redhen_donation_entity_settings_page($entity_type, $entity) {
+function redhen_donation_entity_settings_page($entity_type, $entity, $field) {
   list($entity_id) = entity_extract_ids($entity_type, $entity);
   $settings = redhen_donation_entity_settings($entity_type, $entity_id);
-  return drupal_get_form('redhen_donation_entity_settings_form', $settings, $entity_type, $entity_id);
+  return drupal_get_form('redhen_donation_entity_settings_form', $settings, $entity_type, $entity_id, NULL, $field);
 }
 
 /**
@@ -138,26 +133,42 @@ function redhen_donation_donations_page($entity_type, $entity) {
         $user_col = t('Anonymous');
       }
 
-      $transaction_entity_wrapper = $wrapper->transaction_entity;
-      $transaction_entity = $transaction_entity_wrapper->value();
-      $transaction_entity_type = $wrapper->transaction_entity_type->value();
-      $transaction_entity_uri = entity_uri($transaction_entity_type,
-        $transaction_entity);
-      $transaction_entity_label = entity_label($transaction_entity_type, $transaction_entity);
+      if ($donation->transaction_entity_id) {
+        $transaction_entity_wrapper = $wrapper->transaction_entity;
+        $transaction_entity = $transaction_entity_wrapper->value();
+        $transaction_entity_type = $wrapper->transaction_entity_type->value();
+        $transaction_entity_uri = entity_uri($transaction_entity_type, $transaction_entity);
+        $transaction_entity_label = entity_label($transaction_entity_type, $transaction_entity);
+        if (isset($transaction_entity_uri['path'])) {
+          $transaction_column = l(
+            $transaction_entity_label ?: t('Recurring') . ' ' .
+              $donation->transaction_entity_id,
+            $transaction_entity_uri['path']
+          );
+        }
+        else {
+          $transaction_column = $transaction_entity_label ?: 'Recurring ' . $donation->transaction_entity_id;
+        }
+      }
+      else {
+        $transaction_column = 'Transaction Deleted';
+      }
       $donation_uri = $donation->uri();
-      $contact_uri = $wrapper->contact->value()->uri();
+      if ($contact = $wrapper->contact->value()) {
+        $contact_uri = $contact->uri();
+        $contact_column = l($wrapper->contact->label(), $contact_uri['path']);
+      }
+      else {
+        $contact_column = t('Contact Deleted');
+      }
       $rows[] = array(
         l($donation->donation_id, $donation_uri['path']),
         $user_col,
-        l($wrapper->contact->label(), $contact_uri['path']),
+        $contact_column,
         $wrapper->pledged->value(),
         $wrapper->received->value(),
         format_date($donation->updated),
-        l(
-          $transaction_entity_label ?: t('Recurring') . ' ' .
-           $donation->transaction_entity_id,
-          $transaction_entity_uri['path']
-        ),
+        $transaction_column,
         $wrapper->status->value(),
       );
     }

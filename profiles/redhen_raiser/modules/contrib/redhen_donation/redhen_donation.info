@@ -19,9 +19,9 @@ files[] = lib/redhen_donation_type.ui_controller.inc
 
 ; Tests
 
-; Information added by Drupal.org packaging script on 2015-03-18
-version = "7.x-1.2"
+; Information added by Drupal.org packaging script on 2016-12-22
+version = "7.x-1.3"
 core = "7.x"
 project = "redhen_donation"
-datestamp = "1426696474"
+datestamp = "1482374587"
 

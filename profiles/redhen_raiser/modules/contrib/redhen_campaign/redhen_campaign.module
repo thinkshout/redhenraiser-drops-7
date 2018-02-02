@@ -1239,6 +1239,62 @@ function redhen_campaign_form_redhen_donation_form_alter(&$form, &$form_state, $
 }
 
 /**
+ * Implements hook_form_alter().
+ */
+function redhen_campaign_form_alter(&$form, &$form_state, $form_id) {
+  if($form_id == "redhen_donation_edit_form" || $form_id == "redhen_donation_add_form") {
+    $donation = $form_state['donation'];
+    if ($donation->entity_type == 'redhen_campaign') {
+      if (empty($donation->redhen_campaign_context)) {
+        $donation->redhen_campaign_context = $donation->entity_id;
+      }
+      if (empty($donation->redhen_campaign_page_context)) {
+        $donation->redhen_campaign_page_context = 0;
+      }
+      $donation_wrapper = entity_metadata_wrapper('redhen_donation', $form_state['donation']);
+      $campaign = $donation_wrapper->redhen_campaign_context->value();
+      $form['donation_campaign'] = array(
+        '#type' => 'item',
+        '#title' => 'Campaign',
+        '#markup' => l($campaign->label, 'redhen_campaign/' . $campaign->campaign_id),
+        '#weight' => -12,
+      );
+
+      // Get the individual fundraising pages for this campaign.
+      $options = db_select('redhen_campaign_page', 'cp')
+        ->fields('cp', array('page_id', 'label'))
+        ->condition('campaign', $campaign->campaign_id, '=')
+        ->orderBy('label')
+        ->execute()
+        ->fetchAllKeyed();
+
+      $form['donation_campaign_page'] = array(
+        '#type' => 'select',
+        '#title' => 'Campaign Fundraising Page',
+        '#options' => $options,
+        '#empty_value' => '',
+        '#empty_option' => "- None -",
+        '#weight' => -11,
+        '#default_value' => $donation_wrapper->redhen_campaign_page_context->page_id->value(),
+      );
+
+      // Add a custom submit handler to save the value of donation_campaign_page.
+      array_unshift($form['#submit'], 'redhen_campaign_form_redhen_donation_edit_form_submit');
+    }
+  }
+}
+
+/**
+ * Submit function to put the campaign fundraising page in the donation object.
+ */
+function redhen_campaign_form_redhen_donation_edit_form_submit($form, &$form_state) {
+  // Save the existing campaign page so we can recalculate that total later.
+  $form_state['donation']->redhen_campaign_page_context_old = $form_state['donation']->redhen_campaign_page_context;
+  // Now change the campaign page to the new form value.
+  $form_state['donation']->redhen_campaign_page_context = $form_state['values']['donation_campaign_page'];
+}
+
+/**
  * Implements hook_redhen_donation_save().
  */
 function redhen_campaign_redhen_donation_save($donation) {
@@ -1249,6 +1305,18 @@ function redhen_campaign_redhen_donation_save($donation) {
     if (isset($donation->redhen_campaign_page_context)) {
       if ($page = redhen_campaign_page_load($donation->redhen_campaign_page_context)) {
         redhen_campaign_calculate_total_contributions('redhen_campaign_page', $page);
+      }
+    }
+    // If the donation has moved, recalculate the old page toal as well.
+    $new_context = isset($donation->redhen_campaign_page_context)
+      ? $donation->redhen_campaign_page_context
+      : 0;
+    $old_context = isset($donation->redhen_campaign_page_context_old)
+      ? $donation->redhen_campaign_page_context_old
+      : 0;
+    if ($old_context && ($new_context != $old_context)) {
+      if ($page_old = redhen_campaign_page_load($donation->redhen_campaign_page_context_old)) {
+        redhen_campaign_calculate_total_contributions('redhen_campaign_page', $page_old);
       }
     }
   }

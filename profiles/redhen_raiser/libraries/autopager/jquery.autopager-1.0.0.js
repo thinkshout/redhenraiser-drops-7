@@ -6,7 +6,7 @@
  */
 (function($) {
 	var window = this, options = {},
-		content, currentUrl, nextUrl,
+		content, currentUrl, nextUrl, prevUrl,
 		active = false,
 		defaults = {
 			autoLoad: true,
@@ -17,7 +17,13 @@
 			appendTo: null, 
 			start: function() {},
 			load: function() {},
-			disabled: false
+			disabled: false,
+      permalink: true,
+      noAutoScroll: 4,
+      more_link: '<a>Load more</a>',
+      link_prev: null,
+      prev_text: '<a>Load previous</a>',
+      page_arg: 'page'
 		};
 
 	$.autopager = function(_options) {
@@ -46,6 +52,14 @@
 		}
 
 		setUrl();
+		
+		if (_options.link_prev) {
+		  prevUrl = $(_options.link_prev).attr('href');
+      if (prevUrl && currentUrl.match(_options.page_arg)) {
+        var load_prev_link = '<div id="autopager-load-prev">' + options.prev_text + '</div>';
+        $(load_prev_link).insertBefore('#content').click($.autopager.load_prev);
+      } 
+		}
 
 		return this;
 	};
@@ -88,16 +102,40 @@
 		autoLoad: function(value) {
 			return this.option('autoLoad', value);
 		},
+		
+		urlGetArg: function (arg, url) {
+		  if (url && (url.indexOf('?') > 0)) {
+  		  args = url.split('?')[1].split('&');
+  		  for (a in args) {
+  		    if (args[a].split('=')[0] == arg) {
+  		      return args[a].split('=')[1];
+  		    }
+  		  }
+		  }
+		  return false;
+		},
 
 		load: function() {
 			if (active || !nextUrl || options.disabled) {
 				return;
 			}
-
+			$('#autopager-load-more').remove();
 			active = true;
 			options.start(currentHash(), nextHash());
 			$.get(nextUrl, insertContent);
 			return this;
+		},
+		
+		load_prev: function() {
+		  if (active || !prevUrl || options.disabled || !options.link_prev) {
+        return;
+      }
+      $('#autopager-load-prev').remove();
+      
+      active = true;
+      options.start(currentHash(), nextHash());
+      $.get(prevUrl, insertContent);
+      return this;
 		}
 
 	});
@@ -131,27 +169,75 @@
 	}
 
 	function loadOnScroll() {
+	  
 		if (content.offset().top + content.height() < $(document).scrollTop() + $(window).height()) {
-			$.autopager.load();
+	    var page = (typeof(nextUrl) != 'undefined') ? nextUrl.replace(/.*page=(\d+).*/, "$1") : false;
+
+	    //add link to load more.
+	    if ((options.noAutoScroll > 0) && (page % options.noAutoScroll == 0)) {
+	      var load_more_link = '<div id="autopager-load-more">' + options.more_link + '</div>';
+	      if (page && ($('#autopager-load-more').length == 0)) {
+  	      if (options.insertBefore) {
+  	        $(load_more_link).insertBefore(options.insertBefore).click($.autopager.load);
+  	      } else {
+  	        $(load_more_link).appendTo(options.appendTo).click($.autopager.load);
+  	      }
+        }
+	    } else {	  	  
+	      $.autopager.load();
+	    }
+			
 		}
 	}
 
 	function insertContent(res) {
 		var _options = options,
 			nextPage = $('<div/>').append(res.replace(/<script(.|\s)*?\/script>/g, "")),
-			nextContent = nextPage.find(_options.content); 
+			nextContent = nextPage.find(_options.content),
+			nextLink = nextPage.find(_options.link).attr('href'),
+			nextNum = parseInt($.autopager.urlGetArg(_options.page_arg, nextLink)),
+			currentNum = parseInt($.autopager.urlGetArg(_options.page_arg, currentUrl)),
+			loadingPrevious = ((typeof(_options.link_prev) == 'string') && nextNum <= currentNum);
+							
+    if (nextUrl && options.permalink && (typeof window.history.replaceState == 'function')) {     
+          window.history.replaceState({}, document.title, nextUrl);
+    } 
 
-		set('page', _options.page + 1);
+		set('page', nextNum);
 		setUrl(nextPage);
-		if (nextContent.length) {
-			if (_options.insertBefore) {
-				nextContent.insertBefore(_options.insertBefore);
-			} else {
-				nextContent.appendTo(_options.appendTo);
-			}
-			_options.load.call(nextContent.get(), currentHash(), nextHash());
-			content = nextContent.filter(':last');
-		}
+		
+    if (loadingPrevious) {
+      var $content= $(_options.content + ':first');
+      var $html = $('html');
+      var height = $(options.content).parent().height();
+      
+      //add content with a fadein  
+      nextContent.hide()
+      $content.before(nextContent);
+      nextContent.fadeIn(250)
+
+      //scroll to previous location
+      $html.scrollTop( $html.scrollTop() - height + $content.parent().height());
+      
+      //add previous content link
+      prevUrl = nextPage.find(_options.link_prev).attr('href');
+      if (prevUrl) {
+        $('<div id="autopager-load-prev">' + options.prev_text + '</div>').prependTo($(_options.content + ':first'));
+        $('#autopager-load-prev').click($.autopager.load_prev)
+      }
+      
+      options.load(); //dont forget the load callbacks
+    } else {
+  		if (nextContent.length) {
+  			if (_options.insertBefore) {
+  				nextContent.insertBefore(_options.insertBefore);
+  			} else {
+  		    nextContent.appendTo(_options.appendTo);
+  			}
+  			_options.load.call(nextContent.get(), currentHash(), nextHash());
+  			content = nextContent.filter(':last');
+  		}
+    }
 		active = false;
 	}
 

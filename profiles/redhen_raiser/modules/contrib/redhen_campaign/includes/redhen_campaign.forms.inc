@@ -92,8 +92,11 @@ function redhen_campaign_campaign_form_submit($form, &$form_state) {
   $campaign = &$form_state['campaign_entity'];
 
   // Set the campaign's author uid.
+  // Check that campaign is new.
   global $user;
-  $campaign->author_uid = $user->uid;
+  if (empty($campaign->author_uid)) {
+    $campaign->author_uid = $user->uid;
+  }
 
   // Save default parameters back into the $campaign object.
   $campaign->label = $form_state['values']['label'];
@@ -201,8 +204,11 @@ function redhen_campaign_campaign_page_form_submit($form, &$form_state) {
   $page = &$form_state['page_entity'];
 
   // Set the campaign's author uid.
+  // Check that campaign is new.
   global $user;
-  $page->author_uid = $user->uid;
+  if (empty($page->author_uid)) {
+    $page->author_uid = $user->uid;
+  }
 
   // Save parameters back into the $page object.
   $page->label = $form_state['values']['label'];

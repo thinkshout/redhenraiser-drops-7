@@ -29,6 +29,8 @@ function redhen_donation_field_info() {
       'default_widget' => 'redhen_donation_select',
       'default_formatter' => 'redhen_donation_form',
       'no_ui' => FALSE,
+      'property_type' => 'text',
+      'property_callbacks' => array('entity_metadata_field_text_property_callback'),
     ),
   );
 }
@@ -42,6 +44,14 @@ function redhen_donation_field_instance_settings_form($field, $instance) {
   $form = $form_state = array();
 
   $default_settings = isset($instance['settings']['default_redhen_donation_settings']) ? $instance['settings']['default_redhen_donation_settings'] : array();
+
+  $form['donate_tab'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Enable Donate Tab'),
+    '#default_value' => isset($settings['donate_tab']) ? $settings['donate_tab'] : TRUE,
+    '#required' => FALSE,
+    '#description' => t('Enable a tab on the content displaying the donation form.'),
+  );
 
   // Flatten scheduling and reminder settings since this form is in tree mode.
   foreach ($default_settings as $key => $val) {
@@ -147,6 +157,9 @@ function redhen_donation_field_formatter_info() {
     'redhen_donation_form' => array(
       'label' => t('Donation Form'),
       'field types' => array('redhen_donation'),
+      'settings' => array(
+        'use_cart' => FALSE,
+      ),
     ),
   );
 }
@@ -171,6 +184,15 @@ function redhen_donation_field_formatter_settings_form($field, $instance, $view_
     );
   }
 
+  if ($display['type'] == 'redhen_donation_form') {
+    $element['use_cart'] = array(
+      '#title' => t('Use Cart'),
+      '#type' => 'checkbox',
+      '#default_value' => $settings['use_cart'],
+      '#description' => t("Enabling this option will remove payment information from the form, and instead of immediately processing the donation it will be added to the user's cart."),
+    );
+  }
+
   return $element;
 }
 
@@ -185,10 +207,18 @@ function redhen_donation_field_formatter_settings_summary($field, $instance, $vi
 
   if ($display['type'] == 'redhen_donation_default' || $display['type'] == 'redhen_donation_link') {
     if (!empty($settings['label'])) {
-      $summary = t('Donation label: @label.', array('@label' => $settings['label']));
+      $summary .= t('Donation label: @label.', array('@label' => $settings['label']));
     }
     else {
-      $summary = t('Donation label: Parent label.');
+      $summary .= t('Donation label: Parent label.');
+    }
+  }
+  if ($display['type'] == 'redhen_donation_form') {
+    if (!empty($settings['use_cart'])) {
+      $summary .= t('Use Cart');
+    }
+    else {
+      $summary .= t('Single-page Processing');
     }
   }
 
@@ -237,7 +267,8 @@ function redhen_donation_field_formatter_view($entity_type, $entity, $field, $in
             'entity_id' => $entity_id,
             'type' => $donation_type->name,
           ));
-          $element[0] = drupal_get_form('redhen_donation_form', $donation);
+          $use_cart = isset($display['settings']['use_cart']) ? $display['settings']['use_cart'] : FALSE;
+          $element[0] = drupal_get_form('redhen_donation_form', $donation, $use_cart);
         }
         break;
     }
@@ -272,7 +303,12 @@ function redhen_donation_form_field_ui_field_edit_form_validate(&$form, &$form_s
     }
 
     $donation_amounts = &$form_state['values']['instance']['settings']['default_redhen_donation_settings']['settings']['donation_amounts'];
-    $donation_amounts = redhen_extract_allowed_amounts($donation_amounts);
+    if (module_exists('options_element')) {
+      $donation_amounts = form_options_from_text($donation_amounts['options_text'], 'mixed');
+    }
+    else {
+      $donation_amounts = redhen_extract_allowed_amounts($donation_amounts);
+    }
   }
 }
 

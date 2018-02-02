@@ -185,7 +185,16 @@ function redhen_donation_menu() {
     'file' => 'includes/redhen_donation.pages.inc',
     'type' => MENU_DEFAULT_LOCAL_TASK,
   );
-
+  $items['redhen/donation/%redhen_donation/edit'] = array(
+    'title' => 'Edit',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('redhen_donation_edit_form', 2),
+    'access callback' => 'entity_access',
+    'access arguments' => array('edit', 'redhen_donation', 2),
+    'file' => 'includes/redhen_donation.forms.inc',
+    'type' => MENU_LOCAL_TASK,
+    'weight' => 1,
+  );
   // Entity local tasks.
   foreach (redhen_donation_get_donation_instances() as $instance) {
     $type = $instance['entity_type'];
@@ -205,18 +214,20 @@ function redhen_donation_menu() {
       }
       $path_parts = explode('/', trim($path, '/'));
       $position = count($path_parts);
-      $items[$menu_root . '/donate'] = array(
-        'load arguments' => array($type),
-        'title' => 'Donate',
-        'title callback' => 'redhen_donation_donation_title',
-        'title arguments' => array($type, $position),
-        'page callback' => 'redhen_donation_donate_page',
-        'page arguments' => array($type, $position),
-        'access callback' => 'redhen_donation_donate_page_access',
-        'access arguments' => array($type, $position),
-        'type' => MENU_LOCAL_TASK,
-        'file' => 'includes/redhen_donation.pages.inc',
-      );
+      if (!empty($instance['settings']['donate_tab'])) {
+        $items[$menu_root . '/donate'] = array(
+          'load arguments' => array($type),
+          'title' => 'Donate',
+          'title callback' => 'redhen_donation_donation_title',
+          'title arguments' => array($type, $position),
+          'page callback' => 'redhen_donation_donate_page',
+          'page arguments' => array($type, $position),
+          'access callback' => 'redhen_donation_donate_page_access',
+          'access arguments' => array($type, $position),
+          'type' => MENU_LOCAL_TASK,
+          'file' => 'includes/redhen_donation.pages.inc',
+        );
+      }
       $items[$menu_root . '/donations'] = array(
         'load arguments' => array($type),
         'title' => 'Donations',
@@ -242,12 +253,23 @@ function redhen_donation_menu() {
         'load arguments' => array($type),
         'title' => 'Settings',
         'page callback' => 'redhen_donation_entity_settings_page',
-        'page arguments' => array($type, $position),
+        'page arguments' => array($type, $position, $instance['field_name']),
         'access callback' => 'redhen_donation_administer_donations_access',
         'access arguments' => array($type, $position),
         'weight' => 9,
         'type' => MENU_LOCAL_TASK,
         'file' => 'includes/redhen_donation.pages.inc',
+      );
+      $items[$menu_root . '/donations/add'] = array(
+        'load arguments' => array($type),
+        'title' => 'Add Donation',
+        'page callback' => 'drupal_get_form',
+        'page arguments' => array('redhen_donation_add_form', $type, $position),
+        'access callback' => 'entity_access',
+        'access arguments' => array('create', 'redhen_donation'),
+        'type' => MENU_LOCAL_TASK,
+        'weight' => 8,
+        'file' => 'includes/redhen_donation.forms.inc',
       );
     }
   }
@@ -495,7 +517,7 @@ function redhen_donation_administer_donations_access($entity_type, $entity) {
 function redhen_donation_get_entity_donation_type($entity_type, $entity) {
   $fields = field_read_fields(array('type' => 'redhen_donation'));
   foreach ($fields as $field) {
-    if (isset($entity->$field['field_name'])) {
+    if (isset($entity->{$field['field_name']})) {
       $items = field_get_items($entity_type, $entity, $field['field_name']);
       // We're assuming there's only a single value in this field.
       if (!empty($items) && count($items) == 1 && !empty($items[0]['redhen_donation_type'])) {
@@ -513,33 +535,15 @@ function redhen_donation_get_entity_donation_type($entity_type, $entity) {
 function redhen_donation_entity_delete($entity, $entity_type) {
   // Delete donations and settings for this host entity .
   list($entity_id) = entity_extract_ids($entity_type, $entity);
-  db_delete('redhen_donation')
-    ->condition('entity_id', $entity_id)
-    ->condition('entity_type', $entity_type)
-    ->execute();
-  db_delete('redhen_donation_entity')
-    ->condition('entity_id', $entity_id)
-    ->condition('entity_type', $entity_type)
-    ->execute();
-
-  // Remove references to a donation_type on host entities.
-  if ($entity_type == 'redhen_donation_type') {
-    $donation_fields = field_read_fields(array('type' => 'redhen_donation'));
-    if (!empty($donation_fields)) {
-      foreach (array_keys($donation_fields) as $field_name) {
-        $query = new EntityFieldQuery();
-        $result = $query
-          ->fieldCondition($field_name, 'redhen_donation_type', $entity->name)
-          ->execute();
-        foreach ($result as $host_entity_type => $entities) {
-          $entities = entity_load($host_entity_type, array_keys($entities));
-          foreach ($entities as $host_entity) {
-            $host_entity->{$field_name}[LANGUAGE_NONE][0] = NULL;
-            entity_save($host_entity_type, $host_entity);
-          }
-        }
-      }
-    }
+  if (is_int($entity_id)) {
+    db_delete('redhen_donation')
+      ->condition('entity_id', $entity_id)
+      ->condition('entity_type', $entity_type)
+      ->execute();
+    db_delete('redhen_donation_entity')
+      ->condition('entity_id', $entity_id)
+      ->condition('entity_type', $entity_type)
+      ->execute();
   }
 }
 
@@ -934,28 +938,66 @@ function redhen_donation_property_user_set(RedhenDonation $donation, $name, $val
  * @see RedhenDonationMetadataController::entityPropertyInfo()
  */
 function redhen_donation_property_transaction_entity_get(RedhenDonation $donation, array $options, $property_name, $entity_type) {
-  $entity = entity_load_single($donation->transaction_entity_type, $donation->transaction_entity_id);
-  return entity_metadata_wrapper($donation->transaction_entity_type, $entity);
+  if (isset($donation->transaction_entity_type) && isset($donation->transaction_entity_id)) {
+    $entity = entity_load_single($donation->transaction_entity_type, $donation->transaction_entity_id);
+    return $entity ? entity_metadata_wrapper($donation->transaction_entity_type, $entity) : NULL;
+  }
 }
 
+/**
+ * Callback to get $donation_wrapper->transaction_entity.
+ *
+ * @see RedhenDonationMetadataController::entityPropertyInfo()
+ */
+function redhen_donation_property_order_get(RedhenDonation $donation, array $options, $property_name, $entity_type) {
+  if (isset($donation->order_id)) {
+    $order = commerce_order_load($donation->order_id);
+    return entity_metadata_wrapper('commerce_order', $order);
+  }
+}
 
 /**
- * Callback to get $donation->order.
+ * Callback to get $donation->contact.
  *
  * @see RedhenDonationMetadataController::entityPropertyInfo()
  */
 function redhen_donation_property_redhen_contact_get(RedhenDonation $donation, array $options, $property_name, $entity_type) {
   $contact = redhen_contact_load($donation->contact_id);
-  return entity_metadata_wrapper('redhen_contact', $contact);
+  if ($contact) {
+    return entity_metadata_wrapper('redhen_contact', $contact);
+  }
+  else {
+    return NULL;
+  }
+}
+
+/**
+ * Callback to get $donation->line_item.
+ *
+ * @see RedhenDonationMetadataController::entityPropertyInfo()
+ */
+function redhen_donation_property_line_item_get(RedhenDonation $donation, array $options, $property_name, $entity_type) {
+  if (isset($donation->line_item_id)) {
+    $line_item = commerce_line_item_load($donation->line_item_id);
+    return entity_metadata_wrapper('commerce_line_item', $line_item);
+  }
 }
 
 /**
  * Getter callback for donation status.
  */
 function redhen_donation_property_status_get(RedhenDonation $donation, array $options, $property_name, $entity_type) {
+
+  // Check that there is a transaction before trying to access it.
+  if (empty($donation->transaction_entity_id)) {
+    return "n/a";
+  }
   $wrapper = entity_metadata_wrapper('redhen_donation', $donation);
   $transaction_entity = $wrapper->transaction_entity->value();
-  if ($transaction_entity->type == 'commerce_order') {
+  if (!$transaction_entity) {
+    $status = 'Transaction Deleted';
+  }
+  elseif ($transaction_entity->type == 'commerce_order') {
     $status = ucfirst($transaction_entity->status);
   }
   else {
@@ -991,15 +1033,7 @@ function redhen_donation_property_pledged_get(RedhenDonation $donation, array $o
  */
 function redhen_donation_get_formatted_amount(RedhenDonation $donation, $amount_type) {
   $wrapper = entity_metadata_wrapper('redhen_donation', $donation);
-  $transaction_entity_wrapper = $wrapper->transaction_entity;
-  $transaction_entity_type = $wrapper->transaction_entity_type->value();
-  if ($transaction_entity_type == 'commerce_recurring') {
-    $currency_code = $transaction_entity_wrapper->commerce_recurring_fixed_price->currency_code->value();
-  }
-  else {
-    $currency_code = $transaction_entity_wrapper->commerce_order_total->currency_code->value();
-  }
-
+  $currency_code = $donation->order_id ? $wrapper->order->commerce_order_total->currency_code->value() : commerce_default_currency();
   return commerce_currency_format($donation->$amount_type, $currency_code);
 }
 
@@ -1202,6 +1236,22 @@ function redhen_donation_commerce_recurring_recurring_price_alter(&$recurring_pr
  *   The donation for the given transaction id.
  */
 function redhen_donation_load_by_transaction_entity($transaction_type, $transaction_id) {
+  $donations = redhen_donation_load_multiple_by_transaction_entity($transaction_type, $transaction_id);
+  return current($donations);
+}
+
+/**
+ * Load multiple donations by transaction ID.
+ *
+ * @param string $transaction_type
+ *   Order or recurring entity.
+ * @param int $transaction_id
+ *   Entity id.
+ *
+ * @return array
+ *   An array of donations in the transaction.
+ */
+function redhen_donation_load_multiple_by_transaction_entity($transaction_type, $transaction_id) {
   $donations = redhen_donation_load_multiple(
     FALSE,
     array(
@@ -1209,7 +1259,7 @@ function redhen_donation_load_by_transaction_entity($transaction_type, $transact
       'transaction_entity_id' => $transaction_id,
     )
   );
-  return current($donations);
+  return $donations;
 }
 
 /**
@@ -1237,7 +1287,7 @@ function redhen_donation_commerce_payment_order_paid_in_full($order, $transactio
     $order_wrapper = entity_metadata_wrapper('commerce_order', $order);
     $recurring_entity = current(commerce_recurring_load_by_order($order));
     $recurring_entity_wrapper = entity_metadata_wrapper('commerce_recurring', $recurring_entity);
-    $recurring_product_wrapper = $recurring_entity_wrapper->commerce_recurring_ref_product->value();
+    $recurring_product_wrapper = $recurring_entity_wrapper->commerce_recurring_ref_product;
     $donation = redhen_donation_load_by_transaction_entity('commerce_recurring', $recurring_entity->id);
 
     // There is no donation associated with this recurring order.
@@ -1253,7 +1303,7 @@ function redhen_donation_commerce_payment_order_paid_in_full($order, $transactio
     $donation_wrapper->received->set($received + $order_total);
 
     // If no end date update pledged.
-    $end_period = !empty($recurring_product_wrapper->commerce_recurring_end_period) ?
+    $end_period = $recurring_product_wrapper->commerce_recurring_end_period->value() ?
       $recurring_product_wrapper->commerce_recurring_end_period->period->value() : '';
     if ($end_period == '') {
       $donation_wrapper->pledged->set($received + $order_total);
@@ -1261,13 +1311,70 @@ function redhen_donation_commerce_payment_order_paid_in_full($order, $transactio
 
     $donation_wrapper->save();
   }
+  // Check if any donations are in this cart:
+  $order_wrapper = entity_metadata_wrapper($order->type, $order);
+  $donations = redhen_donation_load_multiple_by_transaction_entity($order->type, $order_wrapper->getIdentifier());
+  if ($donations) {
+    foreach ($donations as $donation) {
+      $donation_wrapper = entity_metadata_wrapper('redhen_donation', $donation);
+      rules_invoke_event('redhen_donation_donation_completed', $donation, $transaction, $donation_wrapper->line_item->value(), $donation_wrapper->line_item->commerce_product->value());
+    }
+  }
 }
 
 /**
  * Implements hook_commerce_recurring_uri().
  */
 function redhen_donation_commerce_recurring_uri($recurring_entity) {
-  return array(
-    'path' => 'admin/commerce/recurring-entities/' . $recurring_entity->id . '/edit',
+  $uri = NULL;
+  if (isset($recurring_entity->id)) {
+    $uri = array(
+      'path' => 'admin/commerce/recurring-entities/' . $recurring_entity->id . '/edit',
+    );
+  }
+  return $uri;
+}
+
+/**
+ * Helper function to build a new Donation entity for use in forms.
+ */
+function redhen_donation_initialize_donation($entity, $entity_type, $entity_id = NULL, $author_id = NULL) {
+  if (!$entity_id) {
+    list($entity_id) = entity_extract_ids($entity_type, $entity);
+  }
+  $donation_type = redhen_donation_get_entity_donation_type($entity_type, $entity);
+  $properties = array(
+    'entity_type' => $entity_type,
+    'entity_id' => $entity_id,
+    'type' => $donation_type,
   );
+  if ($author_id) {
+    $properties['author_uid'] = $author_id;
+  }
+  $donation = entity_get_controller('redhen_donation')->create($properties);
+  return $donation;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ *
+ * When editing a product that is in use by a Donation Type, warn the editor to
+ * take care in editing the SKU.
+ */
+function redhen_donation_form_commerce_product_ui_product_form_alter(&$form, &$form_state, $form_id) {
+  if (isset($form['#entity']->sku)) {
+    foreach (redhen_donation_get_types() as $type) {
+      $skus_used = isset($type->settings['commerce_settings']['product_options']['recurring']) ?
+        $type->settings['commerce_settings']['product_options']['recurring'] : array();
+      if (isset($type->settings['commerce_settings']['product_options']['one_time_product'])) {
+        $skus_used[] = $type->settings['commerce_settings']['product_options']['one_time_product'];
+      }
+      if (in_array($form['#entity']->sku, $skus_used, TRUE)) {
+        drupal_set_message(
+          t('This product is being used by the Redhen Donation Type "@donation_type". If you edit the SKU you will break donation forms until you update the Donation Type.', array('@donation_type' => $type->label)),
+          'warning');
+        return;
+      }
+    }
+  }
 }

@@ -51,7 +51,7 @@ function redhen_donation_type_form($form, &$form_state, $donation_type, $op = 'e
     '#title' => t('Contact type'),
     '#default_value' => isset($donation_type->settings['contact_settings']['contact_type']) ? $donation_type->settings['contact_settings']['contact_type'] : NULL,
     '#options' => redhen_contact_type_options_list(),
-    '#empty_value' => FALSE,
+    '#empty_value' => TRUE,
     '#required' => TRUE,
     '#description' => t('Select the contact type that will be created if a contact does not exist.'),
     '#ajax' => array(
@@ -60,9 +60,16 @@ function redhen_donation_type_form($form, &$form_state, $donation_type, $op = 'e
     ),
   );
 
+  // If there are no contact types to select, warn the user before they start
+  // filling out the form:
+  if (empty(redhen_contact_type_options_list()) && !$form_state['rebuild']) {
+    $message = t("You must add at least one !link before you can create a donation type.",
+      array('!link' => l(t('contact type'), 'admin/structure/redhen/contact_types')));
+    drupal_set_message($message, 'warning');
+  }
+
   $form['settings']['contact_settings']['update_fields'] = array(
     '#type' => 'checkbox',
-    '#options' => array(1,1),
     '#title' => t('Update contact fields'),
     '#description' => t('Should the contact fields be updated?'),
     '#default_value' => isset($donation_type->settings['contact_settings']['update_fields']) ? $donation_type->settings['contact_settings']['update_fields'] : NULL,
@@ -71,6 +78,12 @@ function redhen_donation_type_form($form, &$form_state, $donation_type, $op = 'e
   $form['settings']['contact_settings']['fields'] = array(
     '#type' => 'item',
     '#prefix' => '<div id="redhen-field-wrapper">',
+    '#suffix' => '</div>',
+  );
+
+  $form['settings']['contact_settings']['profile_selector'] = array(
+    '#type' => 'item',
+    '#prefix' => '<div id="redhen-profile-selector-wrapper">',
     '#suffix' => '</div>',
   );
 
@@ -87,7 +100,7 @@ function redhen_donation_type_form($form, &$form_state, $donation_type, $op = 'e
     $fields = field_info_instances('redhen_contact', $contact_type);
 
     $other_fields = array();
-    $address_fields = NULL;
+    $address_fields = array();
     foreach ($fields as $field_name => $field) {
       $field_info = field_info_field($field_name);
       if ($field_info['type'] == 'addressfield') {
@@ -110,20 +123,19 @@ function redhen_donation_type_form($form, &$form_state, $donation_type, $op = 'e
       '#prefix' => '<div id="redhen-field-wrapper">',
       '#suffix' => '</div>',
     );
-
-    if ($address_fields) {
-      $address_default = array('billing' => t('None'));
-      $address_fields = array_merge($address_default, $address_fields);
-      $form['settings']['contact_settings']['profile_selector'] = array(
-        '#type' => 'select',
-        '#title' => t('Billing address'),
-        '#options' => $address_fields,
-        '#default_value' => isset($donation_type->settings['contact_settings']['profile_selector']) ? $donation_type->settings['contact_settings']['profile_selector'] : array(),
-        '#description' => t(
-          'Select a contact address field to sync with the billing profile. If "none" is selected, no Contact address fields will be updated with the information provided.'
-        ),
-      );
-    }
+    $address_default = array('billing' => t('None'));
+    $address_fields = array_merge($address_default, $address_fields);
+    $form['settings']['contact_settings']['profile_selector'] = array(
+      '#type' => 'select',
+      '#title' => t('Billing address'),
+      '#options' => $address_fields,
+      '#default_value' => isset($donation_type->settings['contact_settings']['profile_selector']) ? $donation_type->settings['contact_settings']['profile_selector'] : 'billing',
+      '#description' => t(
+        'Select a contact address field to sync with the billing profile. If "none" is selected, no Contact address fields will be updated with the information provided.'
+      ),
+      '#prefix' => '<div id="redhen-profile-selector-wrapper">',
+      '#suffix' => '</div>',
+    );
   }
 
   $form['settings']['commerce_settings'] = array(
@@ -134,14 +146,27 @@ function redhen_donation_type_form($form, &$form_state, $donation_type, $op = 'e
   );
 
   $product_types = commerce_product_type_options_list();
-  unset($product_types['recurring']);
+  // Recurring product types can be identified by having the recurring fields
+  // attached to them.
+  $rec_price_info = field_info_field('commerce_recurring_rec_price');
+  $recurring_product_types = $rec_price_info['bundles']['commerce_product'];
+  foreach ($recurring_product_types as $rec_type) {
+    unset($product_types[$rec_type]);
+  }
+  $one_time_product_default = isset($donation_type->settings['commerce_settings']['one_time_product_type']) ? $donation_type->settings['commerce_settings']['one_time_product_type'] : NULL;
+  if (empty($one_time_product_default) && count($product_types) == 1) {
+    // If there is only one product type, assume we are going to use that so
+    // product options show up without a seperate ajax request:
+    $one_time_product_default = key($product_types);
+    $form_state['values']['settings']['commerce_settings']['one_time_product_type'] = $one_time_product_default;
+  }
   $form['settings']['commerce_settings']['one_time_product_type'] = array(
     '#title' => t('One time product type'),
     '#type' => 'select',
     '#options' => $product_types,
-    '#default_value' => isset($donation_type->settings['commerce_settings']['one_time_product_type']) ? $donation_type->settings['commerce_settings']['one_time_product_type'] : NULL,
+    '#default_value' => $one_time_product_default,
     '#required' => TRUE,
-    '#empty_value' => FALSE,
+    '#empty_value' => TRUE,
     '#ajax' => array(
       'callback' => 'redhen_donation_type_form_callback',
       'wrapper' => 'product-options-wrapper',
@@ -160,12 +185,14 @@ function redhen_donation_type_form($form, &$form_state, $donation_type, $op = 'e
   }
 
   $line_item_type_options = commerce_line_item_type_options_list();
-  if (count($line_item_type_options) > 1) {
+  if (count($line_item_type_options) >= 1) {
     $form['settings']['commerce_settings']['line_item_type'] = array(
       '#type' => 'select',
-      '#title' => t('Line item type.'),
+      '#title' => t('Line item type'),
       '#options' => $line_item_type_options,
       '#default_value' => isset($donation_type->settings['commerce_settings']['line_item_type']) ? $donation_type->settings['commerce_settings']['line_item_type'] : NULL,
+      '#required' => TRUE,
+      '#empty_value' => TRUE,
       '#description' => t('Choose a line item type.'),
     );
   }
@@ -187,34 +214,34 @@ function redhen_donation_type_form($form, &$form_state, $donation_type, $op = 'e
 
   if (!empty($one_time_product_type)) {
     // Product options.
-    $product_options = array('' => t('None'));
     $rec_product_options = array();
-
     $query = new EntityFieldQuery();
     $query->entityCondition('entity_type', 'commerce_product')
       ->propertyCondition('status', 1)
       ->propertyCondition(
         'type',
-        array($one_time_product_type, 'recurring'),
+        array_merge($recurring_product_types, array($one_time_product_type)),
         'IN'
       );
     $result = $query->execute();
 
     if (!isset($result['commerce_product'])) {
-      $product_options = array('' => 'No products found');
+      // If there are no products to select, warn the user before they start
+      // filling out the form:
+      $message = t("You must add at least one !link before you can create a donation type.", array('!link' => l(t('product'), 'admin/commerce/products')));
+      drupal_set_message($message, 'warning');
     }
     else {
       $products = commerce_product_load_multiple(array_keys($result['commerce_product']));
-
       $rec_product_description = array();
-      foreach ($products as $id => $product) {
-        if ($product->type == 'recurring') {
+      foreach ($products as $product) {
+        if (in_array($product->type, $recurring_product_types)) {
           $product_wrapper = entity_metadata_wrapper('commerce_product', $product);
-          $rec_product_options[$id] = $product->title;
-          $rec_product_description[$id] = redhen_donation_product_description($product_wrapper);
+          $rec_product_options[$product->sku] = $product->title;
+          $rec_product_description[$product->sku] = redhen_donation_product_description($product_wrapper);
         }
         else {
-          $product_options[$id] = $product->title;
+          $product_options[$product->sku] = $product->title;
         }
       }
     }
@@ -229,9 +256,11 @@ function redhen_donation_type_form($form, &$form_state, $donation_type, $op = 'e
     $form['settings']['commerce_settings']['product_options']['one_time_product'] = array(
       '#type' => 'select',
       '#title' => t('One Time Product'),
-      '#options' => $product_options,
+      '#options' => isset($product_options) ? $product_options : array(),
       '#description' => t('Choose a one time product.'),
-      '#default_value' => isset($donation_type->settings['commerce_settings']['product_options']['one_time_product']) ? $donation_type->settings['commerce_settings']['product_options']['one_time_product'] : array(),
+      '#default_value' => isset($donation_type->settings['commerce_settings']['product_options']['one_time_product']) ? $donation_type->settings['commerce_settings']['product_options']['one_time_product'] : NULL,
+      '#required' => TRUE,
+      '#empty_value' => TRUE,
     );
 
     if (count($rec_product_options) >= 1) {
@@ -245,6 +274,15 @@ function redhen_donation_type_form($form, &$form_state, $donation_type, $op = 'e
       );
       foreach ($form['settings']['commerce_settings']['product_options']['recurring']['#options'] as $key => $label) {
         $form['settings']['commerce_settings']['product_options']['recurring'][$key]['#description'] = $rec_product_description[$key];
+      }
+
+      $form['settings']['commerce_settings']['product_options']['recurring_user_register_notify'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('Send a welcome message to user created for recurring donation?'),
+      );
+
+      if (isset($donation_type->settings['commerce_settings']['product_options']['recurring_user_register_notify'])) {
+        $form['settings']['commerce_settings']['product_options']['recurring_user_register_notify']['#default_value'] = $donation_type->settings['commerce_settings']['product_options']['recurring_user_register_notify'];
       }
     }
     else {
@@ -266,10 +304,12 @@ function redhen_donation_type_form($form, &$form_state, $donation_type, $op = 'e
     // Todo Note: Submit patch to commerce_payment_example.module to have the payment_method store an array containing a method_id.
     foreach ($rule->actions() as $action) {
       if ($action->settings['payment_method'] == "commerce_payment_example") {
-         $method = $action->settings['payment_method'];
-      } elseif (isset($action->settings['payment_method']['method_id'])) {
+        $method = $action->settings['payment_method'];
+      }
+      elseif (isset($action->settings['payment_method']['method_id'])) {
         $method = $action->settings['payment_method']['method_id'];
-      } else {
+      }
+      else {
         $method = FALSE;
       }
     }
@@ -292,6 +332,13 @@ function redhen_donation_type_form($form, &$form_state, $donation_type, $op = 'e
         array('!link' => l(t('payment method'), 'admin/commerce/config/payment-methods'))
       ),
     );
+    // If there are no payment types, warn the user before they start filling
+    // out the form:
+    if (!$form_state['rebuild']) {
+      $message = t("You must configure and/or enable at least one !link before you can create a donation type.",
+        array('!link' => l(t('payment method'), 'admin/commerce/config/payment-methods')));
+      drupal_set_message($message, 'warning');
+    }
   }
   else {
     $form['settings']['commerce_settings']['payment_options'] = array(
@@ -331,7 +378,7 @@ function redhen_donation_type_form($form, &$form_state, $donation_type, $op = 'e
       $row['payment_method'] = array(
         '#type' => 'select',
         '#options' => $payment_options,
-        '#default_value' => isset($form_state['methods'][$delta]['payment_method']) ? $form_state['methods'][$delta]['payment_method'] : 0,
+        '#default_value' => isset($form_state['methods'][$delta]['payment_method']) ? $form_state['methods'][$delta]['payment_method'] : isset($donation_type->settings['commerce_settings']['payment_methods'][0]['payment_method']) ? $donation_type->settings['commerce_settings']['payment_methods'][0]['payment_method'] : 0,
       );
       $row['label'] = array(
         '#type' => 'textfield',
@@ -416,7 +463,9 @@ function redhen_donation_type_form_callback($form, $form_state) {
   $commands = array();
   switch ($trigger) {
     case 'settings[contact_settings][contact_type]':
-      return $form['settings']['contact_settings']['fields'];
+      $commands[] = ajax_command_replace('#redhen-field-wrapper', render($form['settings']['contact_settings']['fields']));
+      $commands[] = ajax_command_replace('#redhen-profile-selector-wrapper', render($form['settings']['contact_settings']['profile_selector']));
+      break;
 
     case 'settings[commerce_settings][one_time_product_type]':
       return $form['settings']['commerce_settings']['product_options'];

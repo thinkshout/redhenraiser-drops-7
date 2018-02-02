@@ -58,7 +58,7 @@ function hook_redhen_donation_title_alter(&$title, $entity_type, $entity) {
  * Useful for calculating running totals.
  *
  * @param RedhenDonation $donation
- *   Redhen Donation Object
+ *   Redhen Donation Object.
  */
 function hook_redhen_donation_save($donation) {
 }
@@ -67,7 +67,7 @@ function hook_redhen_donation_save($donation) {
  * Provides a way to alter access to the donation status.
  *
  * @param string $status
- *   The current status
+ *   The current status.
  * @param array $context
  *   Contextual information about the item being altered:
  *   - 'entity_type': The host entity type.
@@ -76,4 +76,40 @@ function hook_redhen_donation_save($donation) {
  */
 function hook_redhen_donation_status_alter($status, $context) {
 
+}
+
+/**
+ * Allow overriding of the default contact associated with a Redhen Donation.
+ *
+ * @param RedhenContact $contact
+ *   The default contact as loaded by Redhen Donation.
+ * @param User $user
+ *   The current user (used to load the relevant contact).
+ * @param RedhenDonationType $donation_type
+ *   The type of Donation being made.
+ */
+function hook_redhen_donation_default_contact_alter(&$contact, $user, $donation_type) {
+}
+
+/**
+ * Allow altering the order created by Redhen Donation.
+ *
+ * @param EntityMetadataWrapper $order_wrapper
+ *   The commerce order as an EntityMetadataWrapper.
+ * @param $form
+ *   The Redhen donation form
+ * @param $form_state
+ *   The submitted Redhen donation form
+ */
+function hook_redhen_donation_order_alter($order_wrapper, $form, $form_state) {
+  // Add a item to the order.
+  $order_wrapper->commerce_line_items[] = $line_item;
+}
+
+/**
+ * Allow other modules to change the confirmation message.
+ *
+ * @param string $message
+ */
+function hook_redhen_donation_confirmation_message_alter(&$message) {
 }
